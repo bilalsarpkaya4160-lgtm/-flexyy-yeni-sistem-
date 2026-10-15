@@ -1,0 +1,283 @@
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FLEXYX SYSTEM</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#000;color:#ff2020;font-family:monospace;overflow:hidden}
+canvas{position:fixed;inset:0;width:100%;height:100%}
+.panel{position:relative;z-index:2;width:90%;max-width:480px;margin:22vh auto 0;padding:24px 14px;text-align:center;border:1px solid red;background:#080000ed;box-shadow:0 0 25px #900}
+h1{font-size:25px;text-shadow:0 0 12px red}
+input,button{width:90%;padding:12px;margin-top:12px;background:#080000;border:1px solid red;color:red;font:inherit}
+button{cursor:pointer}
+#done,#final,#infinite{display:none}
+#codes{height:100px;overflow:hidden;text-align:left;font-size:12px;overflow-wrap:anywhere}
+#final{position:fixed;inset:0;z-index:5;background:#000}
+#particles{position:absolute;inset:0;width:100%;height:100%}
+#bigText{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:100%;text-align:center;font-size:clamp(26px,8vw,65px);font-weight:bold;letter-spacing:3px;text-shadow:0 0 20px red;opacity:0}
+#eye{position:absolute;left:50%;top:25%;width:130px;height:65px;border:3px solid red;border-radius:80% 15%;transform:translate(-50%,-50%) rotate(45deg);box-shadow:0 0 22px red;animation:closeEye 2s 2s forwards}
+#pupil{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:35px;height:35px;background:red;border-radius:50%;box-shadow:0 0 20px red}
+@keyframes closeEye{to{transform:translate(-50%,-50%) rotate(45deg) scaleY(.02)}}
+#infinite{position:fixed;inset:0;z-index:6;background:#000;padding:20px 14px;overflow:hidden}
+#infinite h2{font-size:clamp(19px,5vw,30px);text-shadow:0 0 12px red}
+#terminal{height:70vh;overflow:hidden;text-align:left;font-size:12px;line-height:1.5;overflow-wrap:anywhere;color:#ff3333}
+.cursor{animation:blink .7s infinite}
+@keyframes blink{50%{opacity:0}}
+</style>
+</head>
+<body>
+<canvas id="matrix"></canvas>
+
+<div class="panel" id="login">
+<h1>FLEXYX SYSTEM</h1>
+<p>SİSTEM ELE GEÇİRİLDİ</p>
+<p>ERİŞİM KODUNU GİR</p>
+<input id="pin" type="password" placeholder="PIN KODU">
+<button onclick="checkPin()">SİSTEME GİR</button>
+<p id="result"></p>
+</div>
+
+<div class="panel" id="done">
+<h1 id="status">KODLAR YÜKLENİYOR...</h1>
+<div id="codes"></div>
+</div>
+
+<div id="final">
+<canvas id="particles"></canvas>
+<div id="eye"><div id="pupil"></div></div>
+<div id="bigText">ELİMDESİN</div>
+</div>
+
+<div id="infinite">
+<h2>FLEXYX // KODLAR YÜKLENİYOR</h2>
+<div id="terminal"></div>
+<span class="cursor">█</span>
+</div>
+
+<script>
+/* KIRMIZI MATRIX */
+const matrixCanvas=document.getElementById("matrix");
+const mctx=matrixCanvas.getContext("2d");
+let drops=[];
+
+function resizeMatrix(){
+matrixCanvas.width=innerWidth;
+matrixCanvas.height=innerHeight;
+drops=Array(Math.ceil(innerWidth/16)).fill(1);
+}
+addEventListener("resize",resizeMatrix);
+resizeMatrix();
+
+function drawMatrix(){
+mctx.fillStyle="rgba(0,0,0,.09)";
+mctx.fillRect(0,0,matrixCanvas.width,matrixCanvas.height);
+mctx.fillStyle="#ff2020";
+mctx.font="15px monospace";
+for(let i=0;i<drops.length;i++){
+mctx.fillText(String(Math.floor(Math.random()*10)),i*16,drops[i]*16);
+if(drops[i]*16>matrixCanvas.height&&Math.random()>.975)drops[i]=0;
+drops[i]++;
+}
+}
+setInterval(drawMatrix,45);
+
+/* TARAYICIDA ELEKTRONİK SESLER */
+let audioCtx=null;
+
+function sound(freq=440,duration=.12,type="sine",volume=.04){
+if(!audioCtx)return;
+const osc=audioCtx.createOscillator();
+const gain=audioCtx.createGain();
+osc.type=type;
+osc.frequency.setValueAtTime(freq,audioCtx.currentTime);
+gain.gain.setValueAtTime(volume,audioCtx.currentTime);
+gain.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+duration);
+osc.connect(gain);
+gain.connect(audioCtx.destination);
+osc.start();
+osc.stop(audioCtx.currentTime+duration);
+}
+
+function voice(text){
+if(!("speechSynthesis" in window))return;
+speechSynthesis.cancel();
+const utter=new SpeechSynthesisUtterance(text);
+utter.lang="tr-TR";
+utter.rate=1;
+utter.pitch=.8;
+utter.volume=.8;
+speechSynthesis.speak(utter);
+}
+
+function checkPin(){
+if(document.getElementById("pin").value!=="505040"){
+document.getElementById("result").textContent="PAROLA HATALI";
+sound(150,.3,"sawtooth");
+return;
+}
+audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+audioCtx.resume();
+
+document.getElementById("login").style.display="none";
+document.getElementById("done").style.display="block";
+sound(500,.2,"square");
+setTimeout(()=>sound(800,.2,"square"),180);
+voice("Sistem bağlantısı kuruldu. Kodlar yükleniyor.");
+startSequence();
+}
+
+/* KOD YÜKLENİYOR */
+function startSequence(){
+const codes=document.getElementById("codes");
+const status=document.getElementById("status");
+const lines=[
+"> SYSTEM CONNECTION ESTABLISHED",
+"> ACCESS GRANTED",
+"> SCANNING SYSTEM",
+"> LOADING DATA",
+"> SECURITY CHECK",
+"> PROCESS RUNNING",
+"> SYSTEM STATUS ACTIVE"
+];
+let i=0;
+
+const timer=setInterval(()=>{
+codes.innerHTML+=lines[i%lines.length]+"<br>";
+codes.scrollTop=codes.scrollHeight;
+sound(300+Math.random()*500,.06,"square",.018);
+i++;
+},500);
+
+setTimeout(()=>{
+clearInterval(timer);
+status.textContent="KODLAR YÜKLENDİ";
+sound(880,.4,"sine");
+voice("Kodlar yüklendi.");
+setTimeout(startFlyingNumbers,1800);
+},8000);
+}
+
+/* SAYILAR UÇUŞUP YAZI OLUŞTURSUN */
+function startFlyingNumbers(){
+document.getElementById("done").style.display="none";
+document.getElementById("final").style.display="block";
+
+const c=document.getElementById("particles");
+const g=c.getContext("2d");
+c.width=innerWidth;
+c.height=innerHeight;
+
+const text="ELİMDESİN";
+const fontSize=Math.min(65,innerWidth/8);
+g.font="bold "+fontSize+"px monospace";
+g.textAlign="center";
+g.textBaseline="middle";
+
+const targetImage=document.createElement("canvas");
+targetImage.width=c.width;
+targetImage.height=c.height;
+const tg=targetImage.getContext("2d");
+tg.font="bold "+fontSize+"px monospace";
+tg.textAlign="center";
+tg.textBaseline="middle";
+tg.fillStyle="white";
+tg.fillText(text,c.width/2,c.height*.58);
+
+const image=tg.getImageData(0,0,c.width,c.height).data;
+const targets=[];
+const step=4;
+
+for(let y=0;y<c.height;y+=step){
+for(let x=0;x<c.width;x+=step){
+if(image[(y*c.width+x)*4]>100){
+targets.push({x,y});
+}
+}
+}
+
+const particles=[];
+for(let i=0;i<targets.length;i++){
+const t=targets[i];
+particles.push({
+x:Math.random()*c.width,
+y:Math.random()*c.height,
+tx:t.x,ty:t.y,
+vx:(Math.random()-.5)*5,
+vy:(Math.random()-.5)*5,
+digit:String(Math.floor(Math.random()*10))
+});
+}
+
+voice("Sayılar birleşiyor. Elimdesin.");
+sound(180,.8,"sawtooth",.06);
+let frame=0;
+
+function animate(){
+g.clearRect(0,0,c.width,c.height);
+frame++;
+
+for(const p of particles){
+p.x+=(p.tx-p.x)*.035;
+p.y+=(p.ty-p.y)*.035;
+
+if(frame<45){
+p.x+=p.vx;
+p.y+=p.vy;
+p.vx*=.94;
+p.vy*=.94;
+}
+
+g.fillStyle="#ff2222";
+g.font="bold 12px monospace";
+g.fillText(p.digit,p.x,p.y);
+}
+if(frame<130){
+requestAnimationFrame(animate);
+}else{
+g.clearRect(0,0,c.width,c.height);
+document.getElementById("bigText").style.opacity="1";
+sound(650,.5,"sine");
+voice("Elimdesin.");
+setTimeout(showInfinite,5000);
+}
+}
+animate();
+}
+
+/* GÖZ KAPANIR, SONRA SONSUZ KOD EKRANI */
+function showInfinite(){
+document.getElementById("final").style.display="none";
+document.getElementById("infinite").style.display="block";
+voice("Kodlar yüklenmeye devam ediyor.");
+const terminal=document.getElementById("terminal");
+
+const lines=[
+"010101 SYSTEM ACTIVE",
+"ACCESS: GRANTED",
+"PROCESS RUNNING...",
+"DATA STREAM CONTINUES",
+"CONNECTION STATUS: ACTIVE",
+"SCANNING...",
+"LOADING MODULE...",
+"FLEXYX SYSTEM ONLINE"
+];
+
+setInterval(()=>{
+const line=lines[Math.floor(Math.random()*lines.length)];
+const row=document.createElement("div");
+row.textContent="> "+line+" ["+(Math.random()*99999|0)+"]";
+terminal.appendChild(row);
+while(terminal.children.length>35){
+terminal.removeChild(terminal.firstChild);
+}
+terminal.scrollTop=terminal.scrollHeight;
+sound(250+Math.random()*400,.05,"square",.012);
+},350);
+}
+</script>
+</body>
+</html>
+
